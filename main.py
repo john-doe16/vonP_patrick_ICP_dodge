@@ -9,7 +9,10 @@
 # Output - Draw new frames pixels, sounds, haptics (senses)
 # (Store)
 
-
+GOALS: Defeat every boss in sequence
+RULES: Time, Movement, Health
+FEEDBACK: Enemey hit sounds & effects, Health loss sounds.
+FREEDOM: movement and shooting thats it
 '''
  
 import pygame as pg
@@ -56,11 +59,21 @@ class Game:
                 if tile == '1':
                     Wall(self,col,row,1,1)
                     
-                if tile =="P":
+                if tile == "P":
                     self.player = Player( self, col,row)
 
+                if tile == "E":
+                    self.enemy = Enemy( self, col, row )
 
-
+    #  draw text on the screen somewhere
+    def draw_text(self, text, size, color, x, y):
+        font_name = pg.font.match_font('arial')
+        # instance of font clas.
+        font = pg.font.Font(font_name,size)
+        text_surface = font.render(text, True, color)
+        text_rect = text_surface.get_rect()
+        text_rect.midtop = (x,y)
+        self.screen.blit(text_surface, text_rect)
 
     def run(self):
 
@@ -91,6 +104,7 @@ class Game:
     def draw(self):
         self.screen.fill(BLUE)
         self.all_sprites.draw(self.screen)
+        self.draw_text("FPS: " + str(floor(1/self.dt)), 24, WHITE, WIDTH/ 2, HEIGHT / 4)
         pg.display.flip()
 
 if __name__ == "__main__": #mc

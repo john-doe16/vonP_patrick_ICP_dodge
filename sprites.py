@@ -65,6 +65,7 @@ class Player(Sprite):
     def __init__ (self, game, x,y):
 
         self.game = game
+        #provides us with raster images for use in animation
         self.groups = game.all_sprites
         Sprite.__init__(self, self.groups)
 
@@ -83,9 +84,11 @@ class Player(Sprite):
 
         self.hit_rect = PLAYER_HIT_RECT
 
-        # animated stuff
+        # initialize animation related variables
+        # init frame at 0
         self.current_frame = 0
         self.last_update = 0
+        # states?
         self.jumping = False
         self.moving = False
 
@@ -145,6 +148,73 @@ class Player(Sprite):
 
         self.rect.center = self.hit_rect.center
 
+class Enemy(Sprite):
+
+    def __init__ (self, game, x,y):
+
+        self.game = game
+
+        #provides us with raster images for use in animation
+
+        self.groups = game.all_sprites
+        Sprite.__init__(self, self.groups)
+
+        # Sprite and size defs
+
+        self.scale = 5
+
+        self.spritesheet = Spritesheet(path.join(self.game.img_dir,"enemy_sprite_sheet.png"))
+        self.image = pg.Surface( (TILESIZE * self.scale,TILESIZE * self.scale))
+        self.image = self.spritesheet.get_image(0,0,TILESIZE * self.scale,TILESIZE * self.scale)
+        self.image.set_colorkey((0,0,0))
+        self.rect = self.image.get_rect()
+
+        self.x = x
+        self.y = y
+
+        self.vel = vec(0,0)
+        self.pos = vec(x,y) * TILESIZE
+
+        self.hit_rect = PLAYER_HIT_RECT
+
+        # initialize animation related variables
+        # init frame at 0
+
+        self.current_frame = 0
+        self.last_update = 0
+        # states?
+        self.jumping = False
+        self.moving = False
+
+        self.load_images()
+
+    def load_images(self):
+        self.idle_frames = [self.spritesheet.get_image(0,0, TILESIZE,TILESIZE), self.spritesheet.get_image(32,0, TILESIZE,TILESIZE)]
+
+    def animate(self):
+        now = pg.time.get_ticks()
+      
+        if not self.jumping and not self.moving:
+            if now - self.last_update > 350:
+                # when show nedxt frame
+                self.last_update = now
+                self.current_frame = (self.current_frame + 1) % len(self.standing_frames)
+                bottom = self.rect.bottom
+                self.image = self.standing_frames[self.current_frame]                
+                self.rect = self.image.get_rect()
+                self.rect.bottom = bottom
+            elif self.moving:
+                if now - self.last_update > 350:
+                    self.last_update = now
+                    self.current_frame = (self.current_frame + 1) % len(self.moving_frames)
+                    bottom = self.rect.bottom
+                    self.image = self.moving_frames[self.current_frame]
+                    self.rect = self.image.get_rect()
+                    self.rect.bottom = bottom
+
+    def update(self):
+        self.rect.topleft = self.pos
+        pass
 
 class EnemyProjectile(Sprite):
 
