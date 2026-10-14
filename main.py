@@ -49,6 +49,7 @@ class Game:
         self.all_sprites = pg.sprite.Group()
         self.all_walls = pg.sprite.Group()
         self.projectiles = pg.sprite.Group()
+        self.all_coins = pg.sprite.Group()
 
         for i in range(15):
             proj = EnemyProjectile(self,WIDTH/2,0 ,45+i*15,150)
@@ -64,6 +65,9 @@ class Game:
 
                 if tile == "E":
                     self.enemy = Enemy( self, col, row )
+
+                if tile == "C":
+                    self.coin = Coin(self, col,row,1,1)
 
     #  draw text on the screen somewhere
     def draw_text(self, text, size, color, x, y):

@@ -20,7 +20,8 @@ BLACK = (0,0,0)
 # Player Settings
 
 PLAYER_SPEED = 300
-PLAYER_HIT_RECT = pg.Rect(0,0, TILESIZE, TILESIZE)
+PLAYER_HIT_RECT = pg.Rect(0,0, TILESIZE - 5, TILESIZE - 5)
+ENEMY_HIT_RECT = pg.Rect(0,0, TILESIZE - 5, TILESIZE - 5)
 
 KEYBINDS = {
     "MoveUp" : pg.K_w,

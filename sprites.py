@@ -60,6 +60,28 @@ class Wall(Sprite):
         self.rect.x = self.x
         self.rect.y = self.y
 
+class Coin(Sprite):
+
+    def __init__ (self, game, x,y, sx,sy):
+
+        self.game = game
+        self.groups = game.all_sprites, game.all_coins
+        Sprite.__init__(self, self.groups)
+
+        self.image = pg.Surface( (TILESIZE * sx,TILESIZE * sy) )
+        pg.draw.circle(self.image,GREEN, (TILESIZE/2,TILESIZE/2), TILESIZE/2)
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+
+        self.x, self.y = x,y
+
+        self.x = x * TILESIZE
+        self.y = y *  TILESIZE
+
+    def update (self):
+        self.rect.x = self.x
+        self.rect.y = self.y
+
 class Player(Sprite):
 
     def __init__ (self, game, x,y):
@@ -78,6 +100,8 @@ class Player(Sprite):
 
         self.x = x
         self.y = y
+
+        self.coins = 0
 
         self.vel = vec(0,0)
         self.pos = vec(x,y) * TILESIZE
@@ -148,6 +172,11 @@ class Player(Sprite):
 
         self.rect.center = self.hit_rect.center
 
+        hits = pg.sprite.spritecollide(self,self.game.all_coins,False, collide_hit_rect)
+        if hits:
+            hits[0].kill()
+            self.coins += 1
+            print(self.coins)
 class Enemy(Sprite):
 
     def __init__ (self, game, x,y):
@@ -172,10 +201,13 @@ class Enemy(Sprite):
         self.x = x
         self.y = y
 
+        self.speed = -100
+
         self.vel = vec(0,0)
+
         self.pos = vec(x,y) * TILESIZE
 
-        self.hit_rect = PLAYER_HIT_RECT
+        self.hit_rect = ENEMY_HIT_RECT.copy()
 
         # initialize animation related variables
         # init frame at 0
@@ -187,6 +219,17 @@ class Enemy(Sprite):
         self.moving = False
 
         self.load_images()
+
+    def move_player(self):
+        player = self.game.player
+        direction = (self.pos - player.pos).normalize()
+
+        self.vel = direction * self.speed
+
+    
+
+
+
 
     def load_images(self):
         self.idle_frames = [self.spritesheet.get_image(0,0, TILESIZE,TILESIZE), self.spritesheet.get_image(32,0, TILESIZE,TILESIZE)]
@@ -213,8 +256,18 @@ class Enemy(Sprite):
                     self.rect.bottom = bottom
 
     def update(self):
-        self.rect.topleft = self.pos
-        pass
+        self.move_player()
+
+        self.pos += self.vel * self.speed * self.game.dt
+        
+        self.hit_rect.centerx = self.pos.x
+        collide_with_walls(self, self.game.all_walls, 'x')
+
+
+        self.hit_rect.centery = self.pos.y
+        collide_with_walls(self, self.game.all_walls, 'y')
+
+        self.rect.center = self.hit_rect.center
 
 class EnemyProjectile(Sprite):
 
