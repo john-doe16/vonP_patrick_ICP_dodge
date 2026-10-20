@@ -17,6 +17,7 @@ FREEDOM: movement and shooting thats it
  
 import pygame as pg
 from os import path
+import numpy as np
 
 from settings import *
 from sprites import *
@@ -36,13 +37,38 @@ class Game:
         self.running = True
         self.playing = True
 
+        self.highscore = 0
+
         self.dt = self.clock.tick(FPS) / 1000
 
     def load_data(self, map):
         self.game_dir = path.dirname(__file__)
+        self.game_save_file = path.join(self.game_dir, "SaveFile.txt")
         self.img_dir = path.join(self.game_dir, 'images')
-        self.snd_dir = path.join(self.game_dir,'sounds')
         self.map = Map(path.join(self.game_dir,map))
+
+        # sound handling #
+        self.snd_dir = path.join(self.game_dir,'sounds')
+        self.pickup_snd = pg.mixer.Sound(path.join(self.snd_dir,'coin.wav'))
+        self.background_music = path.join(self.snd_dir,'bg_music.wav')
+
+
+        # attempt to find file, if not build a file
+        try:
+            with open(self.game_save_file, "x", encoding="utf-8") as file:
+                file.write("Hello, World!")
+            print("File created successfully.")
+        except FileExistsError:
+            print("File already exists. No action taken.")
+
+        # open file and try to set high score with except set high score to zero
+        with open(self.game_save_file, 'r') as f:
+            try:
+                self.highscore = int(f.read())
+                print('high score set')
+            except:
+                self.highscore = 0
+                print("high score is zero")
  
     def new(self):
         self.load_data('level1.txt')
@@ -69,6 +95,9 @@ class Game:
                 if tile == "C":
                     self.coin = Coin(self, col,row,1,1)
 
+        pg.mixer.music.load(self.background_music)
+        pg.mixer.music.play(loops=-1)
+
     #  draw text on the screen somewhere
     def draw_text(self, text, size, color, x, y):
         font_name = pg.font.match_font('arial')
@@ -94,6 +123,8 @@ class Game:
         for event in pg.event.get():
 
             if event.type == pg.QUIT:
+                with open(path.join(self.game_dir, self.game_save_file), 'w') as f:
+                    f.write(str(self.highscore))
                 if self.playing:
                     self.playing = False
 
@@ -109,6 +140,7 @@ class Game:
         self.screen.fill(BLUE)
         self.all_sprites.draw(self.screen)
         self.draw_text("FPS: " + str(floor(1/self.dt)), 24, WHITE, WIDTH/ 2, HEIGHT / 4)
+        self.draw_text(f"Coins: {self.player.coins}", 24, WHITE, WIDTH/ 2, HEIGHT / 9)
         pg.display.flip()
 
 if __name__ == "__main__": #mc

@@ -175,7 +175,9 @@ class Player(Sprite):
         hits = pg.sprite.spritecollide(self,self.game.all_coins,False, collide_hit_rect)
         if hits:
             hits[0].kill()
+            self.game.highscore += 1
             self.coins += 1
+            self.game.pickup_snd.play()
             print(self.coins)
 class Enemy(Sprite):
 
@@ -190,7 +192,7 @@ class Enemy(Sprite):
 
         # Sprite and size defs
 
-        self.scale = 5
+        self.scale = 1
 
         self.spritesheet = Spritesheet(path.join(self.game.img_dir,"enemy_sprite_sheet.png"))
         self.image = pg.Surface( (TILESIZE * self.scale,TILESIZE * self.scale))
@@ -258,8 +260,8 @@ class Enemy(Sprite):
     def update(self):
         self.move_player()
 
-        self.pos += self.vel * self.speed * self.game.dt
-        
+        self.pos += self.vel * self.game.dt
+
         self.hit_rect.centerx = self.pos.x
         collide_with_walls(self, self.game.all_walls, 'x')
 
