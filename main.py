@@ -38,6 +38,7 @@ class Game:
         self.playing = True
 
         self.highscore = 0
+        self.coins = 0
 
         self.dt = self.clock.tick(FPS) / 1000
 
@@ -65,7 +66,6 @@ class Game:
         with open(self.game_save_file, 'r') as f:
             try:
                 self.highscore = int(f.read())
-                print('high score set')
             except:
                 self.highscore = 0
                 print("high score is zero")
@@ -124,7 +124,10 @@ class Game:
 
             if event.type == pg.QUIT:
                 with open(path.join(self.game_dir, self.game_save_file), 'w') as f:
-                    f.write(str(self.highscore))
+                    if self.highscore > self.coins:
+                        f.write(str(self.highscore))
+                    else:
+                        f.write(str(self.coins))
                 if self.playing:
                     self.playing = False
 
@@ -140,7 +143,8 @@ class Game:
         self.screen.fill(BLUE)
         self.all_sprites.draw(self.screen)
         self.draw_text("FPS: " + str(floor(1/self.dt)), 24, WHITE, WIDTH/ 2, HEIGHT / 4)
-        self.draw_text(f"Coins: {self.player.coins}", 24, WHITE, WIDTH/ 2, HEIGHT / 9)
+        self.draw_text(f"Coins: {self.coins}", 24, WHITE, WIDTH/ 2, HEIGHT / 9)
+        self.draw_text(f"Highscore: {self.highscore}", 24, WHITE, WIDTH/ 2, HEIGHT / 13)
         pg.display.flip()
 
 if __name__ == "__main__": #mc

@@ -101,8 +101,6 @@ class Player(Sprite):
         self.x = x
         self.y = y
 
-        self.coins = 0
-
         self.vel = vec(0,0)
         self.pos = vec(x,y) * TILESIZE
 
@@ -175,10 +173,8 @@ class Player(Sprite):
         hits = pg.sprite.spritecollide(self,self.game.all_coins,False, collide_hit_rect)
         if hits:
             hits[0].kill()
-            self.game.highscore += 1
-            self.coins += 1
+            self.game.coins += 1
             self.game.pickup_snd.play()
-            print(self.coins)
 class Enemy(Sprite):
 
     def __init__ (self, game, x,y):
