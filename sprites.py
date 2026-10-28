@@ -4,6 +4,7 @@ import pygame as pg
 import math
 from pygame.sprite import Sprite
 from os import path
+from random import randint
 
 vec = pg.math.Vector2
 
@@ -60,6 +61,30 @@ class Wall(Sprite):
         self.rect.x = self.x
         self.rect.y = self.y
 
+class Particle(Sprite):
+    def __init__(self, game, x, y):
+        self.game = game
+        self.groups = game.all_sprites, game.all_particles
+        Sprite.__init__(self, self.groups)
+
+        self.image = pg.Surface((TILESIZE // 4, TILESIZE // 4))
+        self.image.fill(GREEN)
+        self.rect = self.image.get_rect()
+
+        self.pos = vec(x, y)
+        self.vel = vec(randint(-180, 180), randint(-180, 180))
+        self.rect.center = self.pos
+
+        self.countdown = Cooldown()
+        self.countdown.event_time = math.floor(pg.time.get_ticks() / 1000)
+
+    def update(self):
+        self.countdown.ticking()
+        self.pos += self.vel * self.game.dt
+        self.rect.center = self.pos
+        if self.countdown.delta > 1:
+            self.kill()
+
 class Coin(Sprite):
 
     def __init__ (self, game, x,y, sx,sy):
@@ -73,6 +98,7 @@ class Coin(Sprite):
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
 
+
         self.x, self.y = x,y
 
         self.x = x * TILESIZE
@@ -85,6 +111,8 @@ class Coin(Sprite):
 class Player(Sprite):
 
     def __init__ (self, game, x,y):
+
+        print("player created")
 
         self.game = game
         #provides us with raster images for use in animation
@@ -172,6 +200,9 @@ class Player(Sprite):
 
         hits = pg.sprite.spritecollide(self,self.game.all_coins,False, collide_hit_rect)
         if hits:
+            for i in range(25):
+                print(i)
+                Particle(self.game,self.pos.x,self.pos.y)
             hits[0].kill()
             self.game.coins += 1
             self.game.pickup_snd.play()

@@ -17,7 +17,6 @@ FREEDOM: movement and shooting thats it
  
 import pygame as pg
 from os import path
-import numpy as np
 
 from settings import *
 from sprites import *
@@ -73,6 +72,7 @@ class Game:
     def new(self):
         self.load_data('level1.txt')
         self.all_sprites = pg.sprite.Group()
+        self.all_particles = pg.sprite.Group()
         self.all_walls = pg.sprite.Group()
         self.projectiles = pg.sprite.Group()
         self.all_coins = pg.sprite.Group()
