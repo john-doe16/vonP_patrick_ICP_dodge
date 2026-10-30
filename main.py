@@ -76,6 +76,7 @@ class Game:
         self.all_walls = pg.sprite.Group()
         self.projectiles = pg.sprite.Group()
         self.all_coins = pg.sprite.Group()
+        self.all_tiles = pg.sprite.Group()
 
         for i in range(15):
             proj = EnemyProjectile(self,WIDTH/2,0 ,45+i*15,150)
@@ -85,15 +86,20 @@ class Game:
             for col, tile in enumerate(tiles):
                 if tile == '1':
                     Wall(self,col,row,1,1)
-                    
-                if tile == "P":
-                    self.player = Player( self, col,row)
 
                 if tile == "E":
                     self.enemy = Enemy( self, col, row )
 
                 if tile == "C":
                     self.coin = Coin(self, col,row,1,1)
+                if tile == "I":
+                    f = TileSurface(self,col,row)
+                    f.set_varient("ice")
+        for row , tiles in enumerate(self.map.data):
+            for col, tile in enumerate(tiles):
+                if tile == "P":
+                    self.player = Player( self, col,row)
+
 
         pg.mixer.music.load(self.background_music)
         pg.mixer.music.play(loops=-1)

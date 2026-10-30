@@ -2,6 +2,7 @@ from settings import *
 from utils import *
 import pygame as pg
 import math
+from math import floor
 from pygame.sprite import Sprite
 from os import path
 from random import randint
@@ -24,7 +25,7 @@ def collide_with_walls(sprite,group,dir):
             if hits[0].rect.centerx < sprite.hit_rect.centerx:
                 sprite.pos.x = hits[0].rect.right + sprite.hit_rect.width / 2
 
-        sprite.vel.x = 0
+            sprite.vel.x = 0
         sprite.hit_rect.centerx = sprite.pos.x
 
     if dir == 'y':
@@ -37,7 +38,7 @@ def collide_with_walls(sprite,group,dir):
             if hits[0].rect.centery < sprite.hit_rect.centery:
                 sprite.pos.y = hits[0].rect.bottom + sprite.hit_rect.height / 2
 
-        sprite.vel.y = 0
+            sprite.vel.y = 0
         sprite.hit_rect.centery = sprite.pos.y
 
 class Wall(Sprite):
@@ -60,6 +61,34 @@ class Wall(Sprite):
     def update (self):
         self.rect.x = self.x
         self.rect.y = self.y
+
+class TileSurface(Sprite):
+
+    def __init__ (self, game, x,y):
+
+        self.game = game
+        self.groups = game.all_sprites, game.all_tiles
+        Sprite.__init__(self, self.groups)
+
+        self.image = pg.Surface( (TILESIZE,TILESIZE) )
+        self.image.fill( BLUE )
+        self.rect = self.image.get_rect()
+        self.varient = None
+
+        self.x, self.y = x,y
+
+        self.x = x * TILESIZE
+        self.y = y *  TILESIZE
+
+    def update (self):
+        self.rect.x = self.x
+        self.rect.y = self.y
+
+    def set_varient (self,varient):
+        self.varient = varient
+        if varient == "ice":
+            self.image.fill(CYAN)
+    
 
 class Particle(Sprite):
     def __init__(self, game, x, y):
@@ -94,7 +123,7 @@ class Coin(Sprite):
         Sprite.__init__(self, self.groups)
 
         self.image = pg.Surface( (TILESIZE * sx,TILESIZE * sy) )
-        pg.draw.circle(self.image,GREEN, (TILESIZE/2,TILESIZE/2), TILESIZE/2)
+        pg.draw.circle(self.image,YELLOW, (TILESIZE/2,TILESIZE/2), TILESIZE/2)
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
 
@@ -130,7 +159,10 @@ class Player(Sprite):
         self.y = y
 
         self.vel = vec(0,0)
+        self.acc = vec(0,0)
         self.pos = vec(x,y) * TILESIZE
+        self.cofric = -0.1
+        self.current_tile = None
 
         self.hit_rect = PLAYER_HIT_RECT
 
@@ -147,19 +179,19 @@ class Player(Sprite):
     # get player input
     def get_keys(self):
 
-        self.vel = vec(0,0)
+        self.acc = vec(0,0)
 
         keys = pg.key.get_pressed()
 
         if keys[KEYBINDS["MoveLeft"]]:
-            self.vel.x = -PLAYER_SPEED
+            self.acc.x = -PLAYER_ACC
         if keys[KEYBINDS["MoveRight"]]:
-            self.vel.x = PLAYER_SPEED
+            self.acc.x = PLAYER_ACC
 
         if keys[KEYBINDS["MoveUp"]]:
-            self.vel.y = -PLAYER_SPEED
+            self.acc.y = -PLAYER_ACC
         if keys[KEYBINDS["MoveDown"]]:
-            self.vel.y = PLAYER_SPEED
+            self.acc.y = PLAYER_ACC
 
     def load_images(self):
         self.idle_frames = [self.spritesheet.get_image(0,0, TILESIZE,TILESIZE), self.spritesheet.get_image(32,0, TILESIZE,TILESIZE)]
@@ -188,17 +220,27 @@ class Player(Sprite):
     def update(self):
         self.get_keys()
 
-        self.pos.x += self.vel.x * self.game.dt
+        if self.current_tile == "I":
+            self.cofric = -0.01
+        else:
+            self.cofric = -0.1
+
+        self.acc.x += self.vel.x * self.cofric
+        self.acc.y += self.vel.y * self.cofric
+
+        self.vel += self.acc
+
+        self.pos.x += (self.vel.x + 0.5 * self.acc.x) * self.game.dt
         self.hit_rect.centerx = self.pos.x
         collide_with_walls(self, self.game.all_walls, 'x')
 
-        self.pos.y += self.vel.y * self.game.dt
+        self.pos.y += (self.vel.y + 0.5 * self.acc.y) * self.game.dt
         self.hit_rect.centery = self.pos.y
         collide_with_walls(self, self.game.all_walls, 'y')
 
         self.rect.center = self.hit_rect.center
-
         hits = pg.sprite.spritecollide(self,self.game.all_coins,False, collide_hit_rect)
+
         if hits:
             for i in range(25):
                 print(i)
@@ -206,6 +248,11 @@ class Player(Sprite):
             hits[0].kill()
             self.game.coins += 1
             self.game.pickup_snd.play()
+
+        col = floor(self.pos.x / TILESIZE)
+        row = floor(self.pos.y / TILESIZE)
+        self.current_tile = self.game.map.data[row][col]
+        
 class Enemy(Sprite):
 
     def __init__ (self, game, x,y):
@@ -251,6 +298,8 @@ class Enemy(Sprite):
 
     def move_player(self):
         player = self.game.player
+        if self.pos - player.pos == 0:
+            return
         direction = (self.pos - player.pos).normalize()
 
         self.vel = direction * self.speed
