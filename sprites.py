@@ -6,6 +6,7 @@ from math import floor
 from pygame.sprite import Sprite
 from os import path
 from random import randint
+from BossConfig import *
 
 vec = pg.math.Vector2
 
@@ -252,6 +253,29 @@ class Player(Sprite):
         col = floor(self.pos.x / TILESIZE)
         row = floor(self.pos.y / TILESIZE)
         self.current_tile = self.game.map.data[row][col]
+
+class Boss(Sprite):
+    def __init__ (self, game, x,y,boss_type):
+
+        self.game = game
+        self.x,self.y = x,y
+
+        self.scale = 1
+        self.boss_type = boss_type
+
+        self.groups = game.all_sprites
+
+        self.spritesheet = Spritesheet(path.join(self.game.img_dir,"enemy_sprite_sheet.png"))
+        self.image = pg.Surface( (TILESIZE * self.scale,TILESIZE * self.scale))
+        self.image = self.spritesheet.get_image(0,0,TILESIZE * self.scale,TILESIZE * self.scale)
+        self.image.set_colorkey((0,0,0))
+        self.rect = self.image.get_rect()
+
+        self.hit_rect = pg.Rect(x,y, TILESIZE * self.scale, TILESIZE * self.scale )
+
+    def update(self):
+        self.hit_rect.center = self.rect.center
+
         
 class Enemy(Sprite):
 
@@ -266,11 +290,9 @@ class Enemy(Sprite):
 
         # Sprite and size defs
 
-        self.scale = 1
-
         self.spritesheet = Spritesheet(path.join(self.game.img_dir,"enemy_sprite_sheet.png"))
-        self.image = pg.Surface( (TILESIZE * self.scale,TILESIZE * self.scale))
-        self.image = self.spritesheet.get_image(0,0,TILESIZE * self.scale,TILESIZE * self.scale)
+        self.image = pg.Surface( (TILESIZE,TILESIZE))
+        self.image = self.spritesheet.get_image(0,0,TILESIZE,TILESIZE)
         self.image.set_colorkey((0,0,0))
         self.rect = self.image.get_rect()
 
@@ -304,11 +326,6 @@ class Enemy(Sprite):
 
         self.vel = direction * self.speed
 
-    
-
-
-
-
     def load_images(self):
         self.idle_frames = [self.spritesheet.get_image(0,0, TILESIZE,TILESIZE), self.spritesheet.get_image(32,0, TILESIZE,TILESIZE)]
 
@@ -317,6 +334,7 @@ class Enemy(Sprite):
       
         if not self.jumping and not self.moving:
             if now - self.last_update > 350:
+
                 # when show nedxt frame
                 self.last_update = now
                 self.current_frame = (self.current_frame + 1) % len(self.standing_frames)
@@ -324,8 +342,10 @@ class Enemy(Sprite):
                 self.image = self.standing_frames[self.current_frame]                
                 self.rect = self.image.get_rect()
                 self.rect.bottom = bottom
+
             elif self.moving:
                 if now - self.last_update > 350:
+
                     self.last_update = now
                     self.current_frame = (self.current_frame + 1) % len(self.moving_frames)
                     bottom = self.rect.bottom

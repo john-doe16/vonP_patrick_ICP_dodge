@@ -14,12 +14,18 @@ RULES: Time, Movement, Health
 FEEDBACK: Enemey hit sounds & effects, Health loss sounds.
 FREEDOM: movement and shooting thats it
 '''
+
+'''
+TODO:
+Bosses & Movement patterns.
+'''
  
 import pygame as pg
 from os import path
 
 from settings import *
 from sprites import *
+from BossConfig import *
 from utils import *
 
 
@@ -86,10 +92,6 @@ class Game:
             for col, tile in enumerate(tiles):
                 if tile == '1':
                     Wall(self,col,row,1,1)
-
-                if tile == "E":
-                    self.enemy = Enemy( self, col, row )
-
                 if tile == "C":
                     self.coin = Coin(self, col,row,1,1)
                 if tile == "I":
@@ -99,6 +101,9 @@ class Game:
             for col, tile in enumerate(tiles):
                 if tile == "P":
                     self.player = Player( self, col,row)
+                if tile == "E":
+                    self.enemy = Enemy( self, col, row )
+                
 
 
         pg.mixer.music.load(self.background_music)
