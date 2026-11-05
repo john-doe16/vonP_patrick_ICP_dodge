@@ -10,11 +10,11 @@ from BossConfig import *
 
 vec = pg.math.Vector2
 
-# Create player Class with Sprite super
-
+# Hit Rect
 def collide_hit_rect(one,two):
     return one.hit_rect.colliderect(two.rect)
 
+# Check if the player is touching a wall
 def collide_with_walls(sprite,group,dir):
     if dir == 'x':
         hits = pg.sprite.spritecollide(sprite,group,False, collide_hit_rect)
@@ -42,6 +42,7 @@ def collide_with_walls(sprite,group,dir):
             sprite.vel.y = 0
         sprite.hit_rect.centery = sprite.pos.y
 
+# Wall Classes
 class Wall(Sprite):
 
     def __init__ (self, game, x,y, sx,sy):
@@ -59,10 +60,12 @@ class Wall(Sprite):
         self.x = x * TILESIZE
         self.y = y *  TILESIZE
 
+    # Slightly useless.
     def update (self):
         self.rect.x = self.x
         self.rect.y = self.y
 
+# Define a ground surface.
 class TileSurface(Sprite):
 
     def __init__ (self, game, x,y):
@@ -91,6 +94,7 @@ class TileSurface(Sprite):
             self.image.fill(CYAN)
     
 
+# Temp Particle class, Should be cleaned up ltr.
 class Particle(Sprite):
     def __init__(self, game, x, y):
         self.game = game
@@ -109,12 +113,14 @@ class Particle(Sprite):
         self.countdown.event_time = math.floor(pg.time.get_ticks() / 1000)
 
     def update(self):
+        # Move based on countdown class.
         self.countdown.ticking()
         self.pos += self.vel * self.game.dt
         self.rect.center = self.pos
         if self.countdown.delta > 1:
             self.kill()
 
+# Define a pick-up able coin, should be replaced ltr.
 class Coin(Sprite):
 
     def __init__ (self, game, x,y, sx,sy):
@@ -123,6 +129,7 @@ class Coin(Sprite):
         self.groups = game.all_sprites, game.all_coins
         Sprite.__init__(self, self.groups)
 
+        # Draw the image
         self.image = pg.Surface( (TILESIZE * sx,TILESIZE * sy) )
         pg.draw.circle(self.image,YELLOW, (TILESIZE/2,TILESIZE/2), TILESIZE/2)
         self.image.set_colorkey(BLACK)
@@ -138,6 +145,7 @@ class Coin(Sprite):
         self.rect.x = self.x
         self.rect.y = self.y
 
+# Define the user-controlled player sprite
 class Player(Sprite):
 
     def __init__ (self, game, x,y):
@@ -159,6 +167,7 @@ class Player(Sprite):
         self.x = x
         self.y = y
 
+        # Define movement parameters.
         self.vel = vec(0,0)
         self.acc = vec(0,0)
         self.pos = vec(x,y) * TILESIZE
@@ -184,6 +193,7 @@ class Player(Sprite):
 
         keys = pg.key.get_pressed()
 
+        # Custom Keybinds 
         if keys[KEYBINDS["MoveLeft"]]:
             self.acc.x = -PLAYER_ACC
         if keys[KEYBINDS["MoveRight"]]:
@@ -197,9 +207,11 @@ class Player(Sprite):
     def load_images(self):
         self.idle_frames = [self.spritesheet.get_image(0,0, TILESIZE,TILESIZE), self.spritesheet.get_image(32,0, TILESIZE,TILESIZE)]
 
+    # Probably won't be used for now; remove later?
     def animate(self):
         now = pg.time.get_ticks()
-      
+
+
         if not self.jumping and not self.moving:
             if now - self.last_update > 350:
                 # when show nedxt frame
@@ -218,9 +230,11 @@ class Player(Sprite):
                     self.rect = self.image.get_rect()
                     self.rect.bottom = bottom
 
+    # Bloated update def.
     def update(self):
         self.get_keys()
 
+        # Modify friction based off the current tile.
         if self.current_tile == "I":
             self.cofric = -0.01
         else:
@@ -231,6 +245,7 @@ class Player(Sprite):
 
         self.vel += self.acc
 
+        # Check walls on each axis.
         self.pos.x += (self.vel.x + 0.5 * self.acc.x) * self.game.dt
         self.hit_rect.centerx = self.pos.x
         collide_with_walls(self, self.game.all_walls, 'x')
@@ -242,6 +257,7 @@ class Player(Sprite):
         self.rect.center = self.hit_rect.center
         hits = pg.sprite.spritecollide(self,self.game.all_coins,False, collide_hit_rect)
 
+        # check hits.
         if hits:
             for i in range(25):
                 print(i)
@@ -265,6 +281,7 @@ class Boss(Sprite):
 
         self.groups = game.all_sprites
 
+        # Define boss sprites.
         self.spritesheet = Spritesheet(path.join(self.game.img_dir,"enemy_sprite_sheet.png"))
         self.image = pg.Surface( (TILESIZE * self.scale,TILESIZE * self.scale))
         self.image = self.spritesheet.get_image(0,0,TILESIZE * self.scale,TILESIZE * self.scale)
@@ -319,6 +336,8 @@ class Enemy(Sprite):
         self.load_images()
 
     def move_player(self):
+        # Very simple pathfinding.
+
         player = self.game.player
         if self.pos - player.pos == 0:
             return
@@ -329,6 +348,7 @@ class Enemy(Sprite):
     def load_images(self):
         self.idle_frames = [self.spritesheet.get_image(0,0, TILESIZE,TILESIZE), self.spritesheet.get_image(32,0, TILESIZE,TILESIZE)]
 
+    # Redundent animate function.
     def animate(self):
         now = pg.time.get_ticks()
       
@@ -367,6 +387,8 @@ class Enemy(Sprite):
 
         self.rect.center = self.hit_rect.center
 
+
+# Prolly change later, basic code for enemy projects.
 class EnemyProjectile(Sprite):
 
     def __init__(self,game,x,y ,angle,speed):

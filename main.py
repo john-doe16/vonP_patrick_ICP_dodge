@@ -35,7 +35,7 @@ class Game:
 
         pg.init()
         pg.mixer.init()
-        self.screen = pg.display.set_mode((WIDTH,HEIGHT))
+        self.screen = pg.display.set_mode((WIDTH,HEIGHT),pg.FULLSCREEN)
 
         self.clock = pg.time.Clock()
 
@@ -47,6 +47,7 @@ class Game:
 
         self.dt = self.clock.tick(FPS) / 1000
 
+    # Load relevent data like maps and sound.
     def load_data(self, map):
         self.game_dir = path.dirname(__file__)
         self.game_save_file = path.join(self.game_dir, "SaveFile.txt")
@@ -77,6 +78,7 @@ class Game:
  
     def new(self):
         self.load_data('level1.txt')
+        # Initialize groups.
         self.all_sprites = pg.sprite.Group()
         self.all_particles = pg.sprite.Group()
         self.all_walls = pg.sprite.Group()
@@ -87,7 +89,8 @@ class Game:
         for i in range(15):
             proj = EnemyProjectile(self,WIDTH/2,0 ,45+i*15,150)
         
-        
+
+        # Assign tiles to positions.
         for row , tiles in enumerate(self.map.data):
             for col, tile in enumerate(tiles):
                 if tile == '1':
