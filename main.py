@@ -22,7 +22,6 @@ Bosses & Movement patterns.
  
 import pygame as pg
 from os import path
-
 from settings import *
 from sprites import *
 from BossConfig import *
@@ -36,6 +35,7 @@ class Game:
         pg.init()
         pg.mixer.init()
         self.screen = pg.display.set_mode((WIDTH,HEIGHT),pg.FULLSCREEN)
+        self.width, self.height = self.screen.get_size()
 
         self.clock = pg.time.Clock()
 

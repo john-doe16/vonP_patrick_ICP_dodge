@@ -254,8 +254,25 @@ class Player(Sprite):
         self.hit_rect.centery = self.pos.y
         collide_with_walls(self, self.game.all_walls, 'y')
 
+        screen_rect = self.game.screen.get_rect()
+        before = self.hit_rect.center
+
+        # Clamp the player position to prevent them from leaving the screen
+        self.hit_rect.clamp_ip(screen_rect)
+
+        if self.hit_rect.centerx != before[0]:
+            self.pos.x = self.hit_rect.centerx
+            self.vel.x = 0
+        if self.hit_rect.centery != before[1]:
+            self.pos.y = self.hit_rect.centery
+            self.vel.y = 0
+
+        self.rect.center = self.hit_rect.center
+
         self.rect.center = self.hit_rect.center
         hits = pg.sprite.spritecollide(self,self.game.all_coins,False, collide_hit_rect)
+
+        
 
         # check hits.
         if hits:
@@ -268,7 +285,11 @@ class Player(Sprite):
 
         col = floor(self.pos.x / TILESIZE)
         row = floor(self.pos.y / TILESIZE)
-        self.current_tile = self.game.map.data[row][col]
+        if row in self.game.map.data and col in self.game.map.data[row]:
+            self.current_tile = self.game.map.data[row][col]
+        else:
+            self.current_tile = None
+
 
 class Boss(Sprite):
     def __init__ (self, game, x,y,boss_type):
