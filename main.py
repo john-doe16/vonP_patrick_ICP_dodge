@@ -6,7 +6,6 @@
 # The game engine consists of 4 basic components
 # Input - keys, buttons, voice, mouse, touch, breath, movement, control stick
 # Process - input processed (direction of control, magnitude)
-# Output - Draw new frames pixels, sounds, haptics (senses)
 # (Store)
 
 GOALS: Defeat every boss in sequence
@@ -27,6 +26,9 @@ from sprites import *
 from BossConfig import *
 from utils import *
 
+# AI was used to add a independant scale factor to each sprite
+
+
 
 # The Game class is a blueprint for the entire game.
 class Game:
@@ -34,7 +36,8 @@ class Game:
 
         pg.init()
         pg.mixer.init()
-        self.screen = pg.display.set_mode((WIDTH,HEIGHT),pg.FULLSCREEN)
+        self.screen = pg.display.set_mode((0, 0), pg.FULLSCREEN)
+        self.width, self.height = self.screen.get_size()
         self.width, self.height = self.screen.get_size()
 
         self.clock = pg.time.Clock()
@@ -96,7 +99,7 @@ class Game:
                 if tile == '1':
                     Wall(self,col,row,1,1)
                 if tile == "C":
-                    self.coin = Coin(self, col,row,1,1)
+                    self.coin = Coin(self, col,row,0.5,0.5)
                 if tile == "I":
                     f = TileSurface(self,col,row)
                     f.set_varient("ice")

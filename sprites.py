@@ -10,6 +10,18 @@ from BossConfig import *
 
 vec = pg.math.Vector2
 
+def get_sprite_scale(sprite):
+    return SPRITE_SCALE * sprite.SCALE
+
+
+def scale_sprite_image(image, scale):
+    if scale == 1:
+        return image
+    size = (max(1, round(image.get_width() * scale)),
+            max(1, round(image.get_height() * scale)))
+    return pg.transform.scale(image, size)
+
+
 # Hit Rect
 def collide_hit_rect(one,two):
     return one.hit_rect.colliderect(two.rect)
@@ -44,6 +56,7 @@ def collide_with_walls(sprite,group,dir):
 
 # Wall Classes
 class Wall(Sprite):
+    SCALE = 1.0
 
     def __init__ (self, game, x,y, sx,sy):
 
@@ -51,7 +64,9 @@ class Wall(Sprite):
         self.groups = game.all_sprites, game.all_walls
         Sprite.__init__(self, self.groups)
 
-        self.image = pg.Surface( (TILESIZE * sx,TILESIZE * sy) )
+        self.scale = get_sprite_scale(self)
+        self.image = pg.Surface((max(1, round(TILESIZE * sx * self.scale)),
+                     max(1, round(TILESIZE * sy * self.scale))))
         self.image.fill( GREEN )
         self.rect = self.image.get_rect()
 
@@ -67,6 +82,7 @@ class Wall(Sprite):
 
 # Define a ground surface.
 class TileSurface(Sprite):
+    SCALE = 1.0
 
     def __init__ (self, game, x,y):
 
@@ -74,7 +90,9 @@ class TileSurface(Sprite):
         self.groups = game.all_sprites, game.all_tiles
         Sprite.__init__(self, self.groups)
 
-        self.image = pg.Surface( (TILESIZE,TILESIZE) )
+        self.scale = get_sprite_scale(self)
+        size = max(1, round(TILESIZE * self.scale))
+        self.image = pg.Surface((size, size))
         self.image.fill( BLUE )
         self.rect = self.image.get_rect()
         self.varient = None
@@ -96,12 +114,16 @@ class TileSurface(Sprite):
 
 # Temp Particle class, Should be cleaned up ltr.
 class Particle(Sprite):
+    SCALE = 1.0
+
     def __init__(self, game, x, y):
         self.game = game
         self.groups = game.all_sprites, game.all_particles
         Sprite.__init__(self, self.groups)
 
-        self.image = pg.Surface((TILESIZE // 4, TILESIZE // 4))
+        self.scale = get_sprite_scale(self)
+        size = max(1, round(TILESIZE // 4 * self.scale))
+        self.image = pg.Surface((size, size))
         self.image.fill(GREEN)
         self.rect = self.image.get_rect()
 
@@ -122,6 +144,7 @@ class Particle(Sprite):
 
 # Define a pick-up able coin, should be replaced ltr.
 class Coin(Sprite):
+    SCALE = 1.0
 
     def __init__ (self, game, x,y, sx,sy):
 
@@ -129,10 +152,16 @@ class Coin(Sprite):
         self.groups = game.all_sprites, game.all_coins
         Sprite.__init__(self, self.groups)
 
-        # Draw the image
-        self.image = pg.Surface( (TILESIZE * sx,TILESIZE * sy) )
-        pg.draw.circle(self.image,YELLOW, (TILESIZE/2,TILESIZE/2), TILESIZE/2)
-        self.image.set_colorkey(BLACK)
+        self.scale = get_sprite_scale(self)
+    # Draw the image
+        self.image = pg.image.load(path.join(self.game.img_dir, "coin.png"))
+        self.image = pg.transform.scale(
+            self.image,
+            (max(1, round(TILESIZE * sx * self.scale)),
+             max(1, round(TILESIZE * sy * self.scale))),
+        )
+        self.rect = self.image.get_rect()
+        self.image.set_colorkey((0,0,0))
         self.rect = self.image.get_rect()
 
 
@@ -147,6 +176,7 @@ class Coin(Sprite):
 
 # Define the user-controlled player sprite
 class Player(Sprite):
+    SCALE = 2.0
 
     def __init__ (self, game, x,y):
 
@@ -157,10 +187,11 @@ class Player(Sprite):
         self.groups = game.all_sprites
         Sprite.__init__(self, self.groups)
 
+        self.scale = get_sprite_scale(self)
         # Sprite and size defs
         self.spritesheet = Spritesheet(path.join(self.game.img_dir,"sprite_sheet.png"))
-        self.image = pg.Surface( (TILESIZE,TILESIZE) )
         self.image = self.spritesheet.get_image(0,0,TILESIZE,TILESIZE)
+        self.image = scale_sprite_image(self.image, self.scale)
         self.image.set_colorkey((0,0,0))
         self.rect = self.image.get_rect()
 
@@ -174,7 +205,9 @@ class Player(Sprite):
         self.cofric = -0.1
         self.current_tile = None
 
-        self.hit_rect = PLAYER_HIT_RECT
+        self.hit_rect = PLAYER_HIT_RECT.copy()
+        self.hit_rect.width = max(1, round(self.hit_rect.width * self.scale))
+        self.hit_rect.height = max(1, round(self.hit_rect.height * self.scale))
 
         # initialize animation related variables
         # init frame at 0
@@ -205,7 +238,10 @@ class Player(Sprite):
             self.acc.y = PLAYER_ACC
 
     def load_images(self):
-        self.idle_frames = [self.spritesheet.get_image(0,0, TILESIZE,TILESIZE), self.spritesheet.get_image(32,0, TILESIZE,TILESIZE)]
+        self.idle_frames = [
+            scale_sprite_image(self.spritesheet.get_image(0, 0, TILESIZE, TILESIZE), self.scale),
+            scale_sprite_image(self.spritesheet.get_image(32, 0, TILESIZE, TILESIZE), self.scale),
+        ]
 
     # Probably won't be used for now; remove later?
     def animate(self):
@@ -292,30 +328,33 @@ class Player(Sprite):
 
 
 class Boss(Sprite):
+    SCALE = 1.0
+
     def __init__ (self, game, x,y,boss_type):
 
         self.game = game
         self.x,self.y = x,y
 
-        self.scale = 1
+        self.scale = get_sprite_scale(self)
         self.boss_type = boss_type
 
         self.groups = game.all_sprites
 
         # Define boss sprites.
         self.spritesheet = Spritesheet(path.join(self.game.img_dir,"enemy_sprite_sheet.png"))
-        self.image = pg.Surface( (TILESIZE * self.scale,TILESIZE * self.scale))
-        self.image = self.spritesheet.get_image(0,0,TILESIZE * self.scale,TILESIZE * self.scale)
+        self.image = self.spritesheet.get_image(0, 0, TILESIZE, TILESIZE)
+        self.image = scale_sprite_image(self.image, self.scale)
         self.image.set_colorkey((0,0,0))
         self.rect = self.image.get_rect()
 
-        self.hit_rect = pg.Rect(x,y, TILESIZE * self.scale, TILESIZE * self.scale )
+        self.hit_rect = pg.Rect(x, y, self.rect.width, self.rect.height)
 
     def update(self):
         self.hit_rect.center = self.rect.center
 
         
 class Enemy(Sprite):
+    SCALE = 1.0
 
     def __init__ (self, game, x,y):
 
@@ -326,11 +365,12 @@ class Enemy(Sprite):
         self.groups = game.all_sprites
         Sprite.__init__(self, self.groups)
 
+        self.scale = get_sprite_scale(self)
         # Sprite and size defs
 
         self.spritesheet = Spritesheet(path.join(self.game.img_dir,"enemy_sprite_sheet.png"))
-        self.image = pg.Surface( (TILESIZE,TILESIZE))
         self.image = self.spritesheet.get_image(0,0,TILESIZE,TILESIZE)
+        self.image = scale_sprite_image(self.image, self.scale)
         self.image.set_colorkey((0,0,0))
         self.rect = self.image.get_rect()
 
@@ -344,6 +384,8 @@ class Enemy(Sprite):
         self.pos = vec(x,y) * TILESIZE
 
         self.hit_rect = ENEMY_HIT_RECT.copy()
+        self.hit_rect.width = max(1, round(self.hit_rect.width * self.scale))
+        self.hit_rect.height = max(1, round(self.hit_rect.height * self.scale))
 
         # initialize animation related variables
         # init frame at 0
@@ -367,7 +409,10 @@ class Enemy(Sprite):
         self.vel = direction * self.speed
 
     def load_images(self):
-        self.idle_frames = [self.spritesheet.get_image(0,0, TILESIZE,TILESIZE), self.spritesheet.get_image(32,0, TILESIZE,TILESIZE)]
+        self.idle_frames = [
+            scale_sprite_image(self.spritesheet.get_image(0, 0, TILESIZE, TILESIZE), self.scale),
+            scale_sprite_image(self.spritesheet.get_image(32, 0, TILESIZE, TILESIZE), self.scale),
+        ]
 
     # Redundent animate function.
     def animate(self):
@@ -411,6 +456,7 @@ class Enemy(Sprite):
 
 # Prolly change later, basic code for enemy projects.
 class EnemyProjectile(Sprite):
+    SCALE = 1.0
 
     def __init__(self,game,x,y ,angle,speed):
 
@@ -418,6 +464,7 @@ class EnemyProjectile(Sprite):
         self.groups = game.all_sprites, game.projectiles
         Sprite.__init__(self, self.groups)
 
+        self.scale = get_sprite_scale(self)
         self.vel = vec(0,0)
         self.pos = vec(x,y) * TILESIZE
 
@@ -427,7 +474,8 @@ class EnemyProjectile(Sprite):
         self.angle = math.radians(angle)
         self.speed = speed
 
-        self.image = pg.Surface( (TILESIZE,TILESIZE) )
+        size = max(1, round(TILESIZE * self.scale))
+        self.image = pg.Surface((size, size))
         self.image.fill(RED)
         self.rect = self.image.get_rect()
 

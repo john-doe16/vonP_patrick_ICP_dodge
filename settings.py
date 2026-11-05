@@ -6,6 +6,9 @@ HEIGHT = 800
 
 TILESIZE = 32
 
+# Sprite size multiplier; per-class multipliers override individual sprites.
+SPRITE_SCALE = 1.0
+
 FPS = 60
 
 # Colors
@@ -32,4 +35,5 @@ KEYBINDS = {
     "MoveDown" : pg.K_s,
     "MoveLeft" : pg.K_a,
     "MoveRight" : pg.K_d,
+    "Shoot" : pg.K_z
 }
