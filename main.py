@@ -154,6 +154,7 @@ class Game:
     # Update all sprites.
     def update(self):
         self.all_sprites.update()
+        self.all_coins.update()
 
     # Draw the current screen
     def draw(self):

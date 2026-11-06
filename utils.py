@@ -33,14 +33,15 @@ class Spritesheet:
         return image
 
 class Cooldown:
-    def __init__(self):
+    def __init__(self,increment = 1000):
         self.current_time = 0
         self.event_time = 0
         self.delta = 0
+        self.increment = increment
         
     def ticking(self):
-        self.current_time = floor( (pg.time.get_ticks()/1000) )
+        self.current_time = floor( (pg.time.get_ticks()/self.increment) )
         self.delta = self.current_time - self.event_time
 
     def time(self):
-        self.current_time = floor( (pg.time.get_ticks()/1000) )
+        self.current_time = floor( (pg.time.get_ticks()/self.increment) )

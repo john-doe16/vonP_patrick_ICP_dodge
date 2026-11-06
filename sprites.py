@@ -144,7 +144,7 @@ class Particle(Sprite):
 
 # Define a pick-up able coin, should be replaced ltr.
 class Coin(Sprite):
-    SCALE = 1.0
+    SCALE = 1.2
 
     def __init__ (self, game, x,y, sx,sy):
 
@@ -162,7 +162,6 @@ class Coin(Sprite):
         )
         self.rect = self.image.get_rect()
         self.image.set_colorkey((0,0,0))
-        self.rect = self.image.get_rect()
 
 
         self.x, self.y = x,y
@@ -171,7 +170,9 @@ class Coin(Sprite):
         self.y = y *  TILESIZE
 
     def update (self):
+        self.y += 50 * self.game.dt
         self.rect.x = self.x
+
         self.rect.y = self.y
 
 # Define the user-controlled player sprite
@@ -198,6 +199,10 @@ class Player(Sprite):
         self.x = x
         self.y = y
 
+        # cooldowns:
+        self.countdown = Cooldown(50)
+        self.last_shot = 0
+
         # Define movement parameters.
         self.vel = vec(0,0)
         self.acc = vec(0,0)
@@ -219,6 +224,10 @@ class Player(Sprite):
 
         self.load_images()
 
+    # Fire projectiles
+    def shoot(self):
+        PlayerProjectile(self.game,self.pos.x,self.pos.y,-90,800)
+
     # get player input
     def get_keys(self):
 
@@ -236,6 +245,12 @@ class Player(Sprite):
             self.acc.y = -PLAYER_ACC
         if keys[KEYBINDS["MoveDown"]]:
             self.acc.y = PLAYER_ACC
+
+        if keys[KEYBINDS["Shoot"]]:
+            delta = self.countdown.current_time - self.last_shot
+            if delta > 1:
+                self.shoot()
+                self.last_shot = self.countdown.current_time
 
     def load_images(self):
         self.idle_frames = [
@@ -269,6 +284,7 @@ class Player(Sprite):
     # Bloated update def.
     def update(self):
         self.get_keys()
+        self.countdown.ticking()
 
         # Modify friction based off the current tile.
         if self.current_tile == "I":
@@ -369,6 +385,7 @@ class Enemy(Sprite):
         # Sprite and size defs
 
         self.spritesheet = Spritesheet(path.join(self.game.img_dir,"enemy_sprite_sheet.png"))
+        self.original_image = self.spritesheet.get_image(0,0,TILESIZE,TILESIZE)
         self.image = self.spritesheet.get_image(0,0,TILESIZE,TILESIZE)
         self.image = scale_sprite_image(self.image, self.scale)
         self.image.set_colorkey((0,0,0))
@@ -378,6 +395,9 @@ class Enemy(Sprite):
         self.y = y
 
         self.speed = -100
+
+        self.health = 100
+        self.hit_effect = False
 
         self.vel = vec(0,0)
 
@@ -397,6 +417,20 @@ class Enemy(Sprite):
         self.moving = False
 
         self.load_images()
+
+    def damage(self):
+        self.health -= 10
+
+        self.hit_effect = True
+        self.hit_time = self.current_frame
+
+        self.image = self.original_image.copy()
+        self.image.fill((255, 255, 255), special_flags=pg.BLEND_RGB_MAX)
+
+
+
+        if self.health <= 0:
+            self.kill()
 
     def move_player(self):
         # Very simple pathfinding.
@@ -442,6 +476,12 @@ class Enemy(Sprite):
     def update(self):
         self.move_player()
 
+        if self.hit_effect:
+            if pg.time.get_ticks() - self.hit_time >= 150:
+                self.image = self.original_image.copy()
+                self.hit_effect = False
+                self.image.set_colorkey(BLACK)
+
         self.pos += self.vel * self.game.dt
 
         self.hit_rect.centerx = self.pos.x
@@ -453,6 +493,48 @@ class Enemy(Sprite):
 
         self.rect.center = self.hit_rect.center
 
+
+# Basic Player Projectile code
+class PlayerProjectile(Sprite):
+    SCALE = 0.8
+
+    def __init__(self,game,x,y ,angle,speed):
+
+        self.game = game
+        self.groups = game.all_sprites, game.projectiles
+        Sprite.__init__(self, self.groups)
+
+        self.scale = get_sprite_scale(self)
+        self.vel = vec(0,0)
+        self.pos = vec(x,y)
+
+
+        self.angle = math.radians(angle)
+        self.speed = speed
+
+        self.spritesheet = Spritesheet(path.join(self.game.img_dir,"PlayerBullet.png"))
+        self.image = self.spritesheet.get_image(0,0,TILESIZE,TILESIZE)
+        self.image = scale_sprite_image(self.image, self.scale)
+        self.image.set_colorkey((0,0,0))
+        self.rect = self.image.get_rect()
+        self.hit_rect = self.rect
+
+        self.rect.x,self.rect.y = self.pos.x,self.pos.y
+
+    def update(self):
+        self.pos.x += math.cos(self.angle) * self.speed * self.game.dt
+        self.pos.y += math.sin(self.angle) * self.speed * self.game.dt
+
+        self.rect.centerx = self.pos.x
+        self.rect.centery = self.pos.y
+
+        hits = pg.sprite.spritecollide(self,self.game.all_sprites,False,collide_hit_rect)
+
+        if hits[0]:
+            hit_name = type(hits[0]).__name__
+            if hit_name == "Enemy":
+                hits[0].damage()
+                self.kill()
 
 # Prolly change later, basic code for enemy projects.
 class EnemyProjectile(Sprite):
