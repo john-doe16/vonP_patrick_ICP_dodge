@@ -113,38 +113,80 @@ class TileSurface(Sprite):
     
 
 # Temp Particle class, Should be cleaned up ltr.
-class Particle(Sprite):
-    SCALE = 1.0
 
-    def __init__(self, game, x, y):
+# MAKE TIHS LATER ITS REDUNDENT
+
+
+class Particle(Sprite):
+    SCALE = 0.8
+    LIFETIME = 0.5
+
+    def tween(self, start, end, age, lifetime):
+        t = min(age / lifetime, 1)
+        return start + (end - start) * t
+
+    def __init__(self, game, x, y,part_type = None,params = None):
+        self.part_type = part_type
+        self.params = params
         self.game = game
         self.groups = game.all_sprites, game.all_particles
         Sprite.__init__(self, self.groups)
 
+        self.size_goal = False
+        self.alpha_goal = 0
+
+        self.spritesheet = Spritesheet(path.join(self.game.img_dir,"Wave1.png"))
+
+        if self.part_type == None:
+            self.vel = vec(randint(-180, 180), randint(-180, 180))
+            self.alpha_goal = 0
+            return
+        if self.part_type == "Expand":
+            self.LIFETIME = 0.5
+            self.size_goal = 1.3
+            self.alpha_goal = 0
+        if self.part_type == "Coin":
+            self.spritesheet = Spritesheet(path.join(self.game.img_dir,"coin.png"))
+            self.LIFETIME = 0.25
+            self.size_goal = 1.1
+            self.alpha_goal = 0
+
         self.scale = get_sprite_scale(self)
-        size = max(1, round(TILESIZE // 4 * self.scale))
-        self.image = pg.Surface((size, size))
-        self.image.fill(GREEN)
+        self.original_image = self.spritesheet.get_image(0,0,TILESIZE,TILESIZE).convert_alpha()
+        self.original_image.set_colorkey((0,0,0))
+        self.image = scale_sprite_image(self.original_image, self.scale)
+        self.image.set_colorkey((0,0,0))
         self.rect = self.image.get_rect()
 
+        self.age = 0
         self.pos = vec(x, y)
-        self.vel = vec(randint(-180, 180), randint(-180, 180))
+        self.vel = vec(0,0)
         self.rect.center = self.pos
 
         self.countdown = Cooldown()
         self.countdown.event_time = math.floor(pg.time.get_ticks() / 1000)
 
+
     def update(self):
         # Move based on countdown class.
         self.countdown.ticking()
-        self.pos += self.vel * self.game.dt
-        self.rect.center = self.pos
-        if self.countdown.delta > 1:
+        self.pos += (self.vel * self.game.dt)
+        self.age += self.game.dt
+
+        if self.size_goal is not False:
+            scale = self.tween(self.scale, self.size_goal, self.age, self.LIFETIME)
+            self.image = scale_sprite_image(self.original_image, scale)
+            self.image.set_colorkey((0,0,0))
+        if self.alpha_goal is not False:
+            self.image.set_alpha(self.tween(255,0, self.age, self.LIFETIME))
+        self.rect = self.image.get_rect(center=self.pos)
+
+        if self.age >= self.LIFETIME:
             self.kill()
 
 # Define a pick-up able coin, should be replaced ltr.
 class Coin(Sprite):
-    SCALE = 1.2
+    SCALE = 1
 
     def __init__ (self, game, x,y, sx,sy):
 
@@ -166,13 +208,12 @@ class Coin(Sprite):
 
         self.x, self.y = x,y
 
-        self.x = x * TILESIZE
-        self.y = y *  TILESIZE
+        self.x = x
+        self.y = y
 
     def update (self):
         self.y += 50 * self.game.dt
         self.rect.x = self.x
-
         self.rect.y = self.y
 
 # Define the user-controlled player sprite
@@ -233,7 +274,8 @@ class Player(Sprite):
             x_offset = - 5
         else:
             x_offset = 5
-        PlayerProjectile(self.game,self.pos.x + x_offset,self.pos.y,-90,800)
+        self.game.shoot_snd.play()
+        PlayerProjectile(self.game,self.pos.x + x_offset,self.pos.y - 25,-90,800)
 
     # get player input
     def get_keys(self):
@@ -335,9 +377,7 @@ class Player(Sprite):
 
         # check hits.
         if hits:
-            for i in range(25):
-                print(i)
-                Particle(self.game,self.pos.x,self.pos.y)
+            Particle(self.game,hits[0].rect.centerx,hits[0].rect.centery,"Coin")
             hits[0].kill()
             self.game.coins += 1
             self.game.pickup_snd.play()
@@ -401,6 +441,8 @@ class Enemy(Sprite):
         self.x = x
         self.y = y
 
+        self.age = 0
+
         self.speed = -100
 
         self.health = 100
@@ -437,15 +479,22 @@ class Enemy(Sprite):
 
 
         if self.health <= 0:
+            Particle(self.game,self.rect.centerx,self.rect.centery,"Expand")
+            self.game.death_snd.play()
+            for i in range(5):
+                Coin(self.game, self.rect.x + randint(-35, 35), self.rect.y + randint(-35, 35), 0.5, 0.5)
             self.kill()
 
     def move_player(self):
         # Very simple pathfinding.
 
         player = self.game.player
-        if self.pos - player.pos == 0:
+        if (self.pos.x - player.pos.x) <= 0:
             return
-        direction = (self.pos - player.pos).normalize()
+        direction = vec(self.pos.x - player.pos.x,0).normalize()
+
+        if self.age % 100:
+            direction *= -1
 
         self.vel = direction * self.speed
 
@@ -482,6 +531,7 @@ class Enemy(Sprite):
 
     def update(self):
         self.move_player()
+        self.age += 1
 
         if self.hit_effect:
             if pg.time.get_ticks() - self.hit_time >= 150:
@@ -564,8 +614,10 @@ class EnemyProjectile(Sprite):
         self.speed = speed
 
         size = max(1, round(TILESIZE * self.scale))
-        self.image = pg.Surface((size, size))
-        self.image.fill(RED)
+        self.spritesheet = Spritesheet(path.join(self.game.img_dir,"Projectile1.png"))
+        self.image = self.spritesheet.get_image(0,0,TILESIZE,TILESIZE)
+        self.image = scale_sprite_image(self.image, self.scale)
+        self.image.set_colorkey((0,0,0))
         self.rect = self.image.get_rect()
 
     def update(self):

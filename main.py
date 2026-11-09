@@ -56,8 +56,9 @@ class Game:
         # sound handling #
         self.snd_dir = path.join(self.game_dir,'sounds')
         self.pickup_snd = pg.mixer.Sound(path.join(self.snd_dir,'coin.wav'))
+        self.shoot_snd = pg.mixer.Sound(path.join(self.snd_dir,'shoot.wav'))
+        self.death_snd = pg.mixer.Sound(path.join(self.snd_dir,'explosion.wav'))
         self.background_music = path.join(self.snd_dir,'bg_music.wav')
-
 
         # attempt to find file, if not build a file
         try:
@@ -154,7 +155,7 @@ class Game:
 
     # Draw the current screen
     def draw(self):
-        self.screen.fill(BLUE)
+        self.screen.fill(BLACK)
         self.all_sprites.draw(self.screen)
         self.draw_text("FPS: " + str(floor(1/self.dt)), 24, WHITE, WIDTH/ 2, HEIGHT / 4)
         self.draw_text(f"Coins: {self.coins}", 24, WHITE, WIDTH/ 2, HEIGHT / 9)
