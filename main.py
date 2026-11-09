@@ -26,10 +26,6 @@ from sprites import *
 from BossConfig import *
 from utils import *
 
-# AI was used to add a independant scale factor to each sprite
-
-
-
 # The Game class is a blueprint for the entire game.
 class Game:
     def __init__(self):

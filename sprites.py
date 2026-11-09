@@ -199,6 +199,8 @@ class Player(Sprite):
         self.x = x
         self.y = y
 
+        self.total_shots = 0
+
         # cooldowns:
         self.countdown = Cooldown(50)
         self.last_shot = 0
@@ -226,7 +228,12 @@ class Player(Sprite):
 
     # Fire projectiles
     def shoot(self):
-        PlayerProjectile(self.game,self.pos.x,self.pos.y,-90,800)
+        self.total_shots += 1
+        if self.total_shots % 2 == 0:
+            x_offset = - 5
+        else:
+            x_offset = 5
+        PlayerProjectile(self.game,self.pos.x + x_offset,self.pos.y,-90,800)
 
     # get player input
     def get_keys(self):
