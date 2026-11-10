@@ -241,9 +241,15 @@ class Player(Sprite):
         self.y = y
 
         self.total_shots = 0
+        self.lives = 5
+        self.invincibility = False
+
+        for i in range(self.lives):
+            Heart(self.game, 15 + (i * TILESIZE), 15)
 
         # cooldowns:
         self.countdown = Cooldown(50)
+        self.invincibility_cooldown = Cooldown(1000)
         self.last_shot = 0
 
         # Define movement parameters.
@@ -261,6 +267,7 @@ class Player(Sprite):
         # init frame at 0
         self.current_frame = 0
         self.last_update = 0
+        self.last_pause = False
         # states?
         self.jumping = False
         self.moving = False
@@ -330,10 +337,25 @@ class Player(Sprite):
                     self.rect = self.image.get_rect()
                     self.rect.bottom = bottom
 
+    def damage(self):
+        if self.invincibility:
+            return
+        self.lives -= 1
+        if len(self.game.all_ui.sprites()) > 0:
+            self.game.blank()
+            self.game.hit_snd.play()
+            self.game.all_ui.sprites()[-1].kill()
+            self.invincibility = True
+            self.last_pause = self.invincibility_cooldown.current_time
+            
+
+
     # Bloated update def.
     def update(self):
         self.get_keys()
         self.countdown.ticking()
+        self.invincibility_cooldown.ticking()
+        
 
         # Modify friction based off the current tile.
         if self.current_tile == "I":
@@ -373,6 +395,10 @@ class Player(Sprite):
         self.rect.center = self.hit_rect.center
         hits = pg.sprite.spritecollide(self,self.game.all_coins,False, collide_hit_rect)
 
+        delta = self.invincibility_cooldown.current_time - self.last_pause
+        if delta > 1:
+            self.invincibility = False
+            self.last_pause = self.invincibility_cooldown.current_time
         
 
         # check hits.
@@ -381,6 +407,7 @@ class Player(Sprite):
             hits[0].kill()
             self.game.coins += 1
             self.game.pickup_snd.play()
+
 
         col = floor(self.pos.x / TILESIZE)
         row = floor(self.pos.y / TILESIZE)
@@ -442,8 +469,11 @@ class Enemy(Sprite):
         self.y = y
 
         self.age = 0
-
-        self.speed = -100
+        self.shoot_cooldown = Cooldown(50)
+        self.last_shot = floor(pg.time.get_ticks() / 50)
+        self.movement_cooldown = Cooldown(1)
+        self.movement_cooldown.ticking()
+        self.movement_cooldown.event_time = self.movement_cooldown.current_time
 
         self.health = 100
         self.hit_effect = False
@@ -466,6 +496,8 @@ class Enemy(Sprite):
         self.moving = False
 
         self.load_images()
+        self.pos.y = self.y * TILESIZE
+        self.pattern_off = randint(-500, 500)
 
     def damage(self):
         self.health -= 10
@@ -484,19 +516,13 @@ class Enemy(Sprite):
             for i in range(5):
                 Coin(self.game, self.rect.x + randint(-35, 35), self.rect.y + randint(-35, 35), 0.5, 0.5)
             self.kill()
+    
 
-    def move_player(self):
-        # Very simple pathfinding.
 
-        player = self.game.player
-        if (self.pos.x - player.pos.x) <= 0:
-            return
-        direction = vec(self.pos.x - player.pos.x,0).normalize()
-
-        if self.age % 100:
-            direction *= -1
-
-        self.vel = direction * self.speed
+    def move_pattern(self):
+        self.movement_cooldown.ticking()
+        pattern_time = self.movement_cooldown.delta / 1000 + self.pattern_off
+        self.pos.x = self.game.width / 2 + (self.game.width / 2 - TILESIZE) * math.sin(pattern_time * 1.2)
 
     def load_images(self):
         self.idle_frames = [
@@ -530,16 +556,20 @@ class Enemy(Sprite):
                     self.rect.bottom = bottom
 
     def update(self):
-        self.move_player()
+        self.move_pattern()
         self.age += 1
+        self.shoot_cooldown.ticking()
+        if self.shoot_cooldown.current_time - self.last_shot >= 150 + randint(-50, 50):
+            for i in range(20):
+                proj = EnemyProjectile(self.game,self.pos.x,self.pos.y ,45+i*20,150)
+
+            self.last_shot = self.shoot_cooldown.current_time
 
         if self.hit_effect:
             if pg.time.get_ticks() - self.hit_time >= 150:
                 self.image = self.original_image.copy()
                 self.hit_effect = False
                 self.image.set_colorkey(BLACK)
-
-        self.pos += self.vel * self.game.dt
 
         self.hit_rect.centerx = self.pos.x
         collide_with_walls(self, self.game.all_walls, 'x')
@@ -587,15 +617,47 @@ class PlayerProjectile(Sprite):
 
         hits = pg.sprite.spritecollide(self,self.game.all_sprites,False,collide_hit_rect)
 
-        if hits[0]:
+        if hits and hits[0]:
             hit_name = type(hits[0]).__name__
             if hit_name == "Enemy":
                 hits[0].damage()
                 self.kill()
 
+class Heart(Sprite):
+    SCALE = 1
+
+    def __init__ (self, game, x,y):
+
+        self.game = game
+        self.groups = game.all_sprites, game.all_ui
+        Sprite.__init__(self, self.groups)
+
+        self.scale = get_sprite_scale(self)
+
+        # Draw the image
+
+        self.image = pg.image.load(path.join(self.game.img_dir, "Heart.png"))
+        self.image = pg.transform.scale(
+            self.image,
+            (max(1, round(TILESIZE * self.scale)),
+             max(1, round(TILESIZE * self.scale))),
+        )
+        self.rect = self.image.get_rect()
+        self.image.set_colorkey((0,0,0))
+
+
+        self.x, self.y = x,y
+
+        self.rect.x = self.x
+        self.rect.y = self.y
+
+
+    def update (self):
+        pass
+
 # Prolly change later, basic code for enemy projects.
 class EnemyProjectile(Sprite):
-    SCALE = 1.0
+    SCALE = 0.5
 
     def __init__(self,game,x,y ,angle,speed):
 
@@ -620,9 +682,19 @@ class EnemyProjectile(Sprite):
         self.image.set_colorkey((0,0,0))
         self.rect = self.image.get_rect()
 
+        self.hit_rect = self.rect
+
     def update(self):
         self.x += math.cos(self.angle) * self.speed * self.game.dt
         self.y += math.sin(self.angle) * self.speed * self.game.dt
 
         self.rect.x = self.x
         self.rect.y = self.y
+
+        if self.rect.colliderect(self.game.player.hit_rect):
+            self.hit()
+        
+
+    def hit(self):
+        self.game.player.damage()
+        self.kill()

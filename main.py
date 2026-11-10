@@ -46,6 +46,7 @@ class Game:
 
         self.dt = self.clock.tick(FPS) / 1000
 
+
     # Load relevent data like maps and sound.
     def load_data(self, map):
         self.game_dir = path.dirname(__file__)
@@ -58,6 +59,8 @@ class Game:
         self.pickup_snd = pg.mixer.Sound(path.join(self.snd_dir,'coin.wav'))
         self.shoot_snd = pg.mixer.Sound(path.join(self.snd_dir,'shoot.wav'))
         self.death_snd = pg.mixer.Sound(path.join(self.snd_dir,'explosion.wav'))
+        self.hit_snd = pg.mixer.Sound(path.join(self.snd_dir,'player_hit.wav'))
+        self.hit_snd.set_volume(3)
         self.background_music = path.join(self.snd_dir,'bg_music.wav')
 
         # attempt to find file, if not build a file
@@ -85,10 +88,7 @@ class Game:
         self.projectiles = pg.sprite.Group()
         self.all_coins = pg.sprite.Group()
         self.all_tiles = pg.sprite.Group()
-
-        for i in range(15):
-            proj = EnemyProjectile(self,WIDTH/2,0 ,45+i*15,150)
-        
+        self.all_ui = pg.sprite.Group()
 
         # Assign tiles to positions.
         for row , tiles in enumerate(self.map.data):
@@ -132,6 +132,10 @@ class Game:
             self.update() # process
             self.draw() # output
 
+    def blank(self):
+        for i in self.projectiles:
+            i.kill()
+
     # This code handles processing player input.
     def events(self):
         for event in pg.event.get():
@@ -158,7 +162,7 @@ class Game:
         self.screen.fill(BLACK)
         self.all_sprites.draw(self.screen)
         self.draw_text("FPS: " + str(floor(1/self.dt)), 24, WHITE, WIDTH/ 2, HEIGHT / 4)
-        self.draw_text(f"Coins: {self.coins}", 24, WHITE, WIDTH/ 2, HEIGHT / 9)
+        self.draw_text(f"Points: {self.coins}", 24, WHITE, WIDTH/ 2, HEIGHT / 9)
         self.draw_text(f"Highscore: {self.highscore}", 24, WHITE, WIDTH/ 2, HEIGHT / 13)
         pg.display.flip()
 
