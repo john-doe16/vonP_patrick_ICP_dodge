@@ -6,7 +6,6 @@ HEIGHT = 800
 
 TILESIZE = 32
 
-# Sprite size multiplier; per-class multipliers override individual sprites.
 SPRITE_SCALE = 1.0
 
 FPS = 60

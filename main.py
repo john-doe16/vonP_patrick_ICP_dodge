@@ -23,7 +23,7 @@ import pygame as pg
 from os import path
 from settings import *
 from sprites import *
-from BossConfig import *
+from EnemyDefs import *
 from utils import *
 
 # The Game class is a blueprint for the entire game.
@@ -78,7 +78,8 @@ class Game:
             except:
                 self.highscore = 0
                 print("high score is zero")
- 
+
+    # Load and initialize relevant files.
     def new(self):
         self.load_data('level1.txt')
         # Initialize groups.
@@ -105,7 +106,7 @@ class Game:
                 if tile == "P":
                     self.player = Player( self, col,row)
                 if tile == "E":
-                    self.enemy = Enemy( self, col, row )
+                    self.enemy = Enemy( self, col, row,FAIRY)
                 
 
 
@@ -137,19 +138,22 @@ class Game:
             i.kill()
 
     # This code handles processing player input.
+
+    def quit(self):
+        with open(path.join(self.game_dir, self.game_save_file), 'w') as f:
+            if self.highscore > self.coins:
+                f.write(str(self.highscore))
+            else:
+                f.write(str(self.coins))
+            if self.playing:
+                self.playing = False
+            self.running = False
+        
     def events(self):
         for event in pg.event.get():
 
             if event.type == pg.QUIT:
-                with open(path.join(self.game_dir, self.game_save_file), 'w') as f:
-                    if self.highscore > self.coins:
-                        f.write(str(self.highscore))
-                    else:
-                        f.write(str(self.coins))
-                if self.playing:
-                    self.playing = False
-
-                self.running = False
+                self.quit()
 
 
     # Update all sprites.

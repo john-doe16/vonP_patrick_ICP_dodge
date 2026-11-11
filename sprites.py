@@ -6,13 +6,12 @@ from math import floor
 from pygame.sprite import Sprite
 from os import path
 from random import randint
-from BossConfig import *
+from EnemyDefs import *
 
 vec = pg.math.Vector2
 
 def get_sprite_scale(sprite):
     return SPRITE_SCALE * sprite.SCALE
-
 
 def scale_sprite_image(image, scale):
     if scale == 1:
@@ -20,7 +19,6 @@ def scale_sprite_image(image, scale):
     size = (max(1, round(image.get_width() * scale)),
             max(1, round(image.get_height() * scale)))
     return pg.transform.scale(image, size)
-
 
 # Hit Rect
 def collide_hit_rect(one,two):
@@ -110,17 +108,13 @@ class TileSurface(Sprite):
         self.varient = varient
         if varient == "ice":
             self.image.fill(CYAN)
-    
 
-# Temp Particle class, Should be cleaned up ltr.
-
-# MAKE TIHS LATER ITS REDUNDENT
-
-
+# Repeated spawned particles
 class Particle(Sprite):
     SCALE = 0.8
     LIFETIME = 0.5
 
+    # Custom function designed to interpolate values from one to another based off a lifetime
     def tween(self, start, end, age, lifetime):
         t = min(age / lifetime, 1)
         return start + (end - start) * t
@@ -137,6 +131,7 @@ class Particle(Sprite):
 
         self.spritesheet = Spritesheet(path.join(self.game.img_dir,"Wave1.png"))
 
+        # Various particle types, Switch maybe for future?
         if self.part_type == None:
             self.vel = vec(randint(-180, 180), randint(-180, 180))
             self.alpha_goal = 0
@@ -151,6 +146,7 @@ class Particle(Sprite):
             self.size_goal = 1.1
             self.alpha_goal = 0
 
+        # Scale and define the image
         self.scale = get_sprite_scale(self)
         self.original_image = self.spritesheet.get_image(0,0,TILESIZE,TILESIZE).convert_alpha()
         self.original_image.set_colorkey((0,0,0))
@@ -158,6 +154,7 @@ class Particle(Sprite):
         self.image.set_colorkey((0,0,0))
         self.rect = self.image.get_rect()
 
+        # Relevant initialization
         self.age = 0
         self.pos = vec(x, y)
         self.vel = vec(0,0)
@@ -341,12 +338,14 @@ class Player(Sprite):
         if self.invincibility:
             return
         self.lives -= 1
-        if len(self.game.all_ui.sprites()) > 0:
+        if len(self.game.all_ui.sprites()) > 1:
             self.game.blank()
             self.game.hit_snd.play()
             self.game.all_ui.sprites()[-1].kill()
             self.invincibility = True
             self.last_pause = self.invincibility_cooldown.current_time
+        else:
+            self.game.quit()
             
 
 
@@ -393,7 +392,7 @@ class Player(Sprite):
         self.rect.center = self.hit_rect.center
 
         self.rect.center = self.hit_rect.center
-        hits = pg.sprite.spritecollide(self,self.game.all_coins,False, collide_hit_rect)
+        hits = pg.sprite.spritecollide(self,self.game.all_coins,False, pg.sprite.collide_rect)
 
         delta = self.invincibility_cooldown.current_time - self.last_pause
         if delta > 1:
@@ -446,7 +445,7 @@ class Boss(Sprite):
 class Enemy(Sprite):
     SCALE = 1.0
 
-    def __init__ (self, game, x,y):
+    def __init__ (self, game,x,y,enemy_def):
 
         self.game = game
 
@@ -469,6 +468,7 @@ class Enemy(Sprite):
         self.y = y
 
         self.age = 0
+        self.current_frame = 0
         self.shoot_cooldown = Cooldown(50)
         self.last_shot = floor(pg.time.get_ticks() / 50)
         self.movement_cooldown = Cooldown(1)
@@ -479,23 +479,13 @@ class Enemy(Sprite):
         self.hit_effect = False
 
         self.vel = vec(0,0)
-
         self.pos = vec(x,y) * TILESIZE
 
         self.hit_rect = ENEMY_HIT_RECT.copy()
-        self.hit_rect.width = max(1, round(self.hit_rect.width * self.scale))
-        self.hit_rect.height = max(1, round(self.hit_rect.height * self.scale))
+        # self.hit_rect.width = max(1, round(self.hit_rect.width * self.scale))
+        # self.hit_rect.height = max(1, round(self.hit_rect.height * self.scale))
 
-        # initialize animation related variables
-        # init frame at 0
-
-        self.current_frame = 0
         self.last_update = 0
-        # states?
-        self.jumping = False
-        self.moving = False
-
-        self.load_images()
         self.pos.y = self.y * TILESIZE
         self.pattern_off = randint(-500, 500)
 
@@ -508,27 +498,17 @@ class Enemy(Sprite):
         self.image = self.original_image.copy()
         self.image.fill((255, 255, 255), special_flags=pg.BLEND_RGB_MAX)
 
-
-
         if self.health <= 0:
             Particle(self.game,self.rect.centerx,self.rect.centery,"Expand")
             self.game.death_snd.play()
             for i in range(5):
                 Coin(self.game, self.rect.x + randint(-35, 35), self.rect.y + randint(-35, 35), 0.5, 0.5)
             self.kill()
-    
-
 
     def move_pattern(self):
         self.movement_cooldown.ticking()
-        pattern_time = self.movement_cooldown.delta / 1000 + self.pattern_off
+        pattern_time = self.movement_cooldown.delta / 4000 + self.pattern_off
         self.pos.x = self.game.width / 2 + (self.game.width / 2 - TILESIZE) * math.sin(pattern_time * 1.2)
-
-    def load_images(self):
-        self.idle_frames = [
-            scale_sprite_image(self.spritesheet.get_image(0, 0, TILESIZE, TILESIZE), self.scale),
-            scale_sprite_image(self.spritesheet.get_image(32, 0, TILESIZE, TILESIZE), self.scale),
-        ]
 
     # Redundent animate function.
     def animate(self):
@@ -559,6 +539,7 @@ class Enemy(Sprite):
         self.move_pattern()
         self.age += 1
         self.shoot_cooldown.ticking()
+
         if self.shoot_cooldown.current_time - self.last_shot >= 150 + randint(-50, 50):
             for i in range(20):
                 proj = EnemyProjectile(self.game,self.pos.x,self.pos.y ,45+i*20,150)
@@ -622,6 +603,9 @@ class PlayerProjectile(Sprite):
             if hit_name == "Enemy":
                 hits[0].damage()
                 self.kill()
+
+        if not self.rect.colliderect(self.game.screen.get_rect()):
+            self.kill()
 
 class Heart(Sprite):
     SCALE = 1
@@ -693,7 +677,8 @@ class EnemyProjectile(Sprite):
 
         if self.rect.colliderect(self.game.player.hit_rect):
             self.hit()
-        
+        if not self.rect.colliderect(self.game.screen.get_rect()):
+            self.kill()
 
     def hit(self):
         self.game.player.damage()
