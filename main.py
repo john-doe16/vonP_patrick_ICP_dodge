@@ -56,12 +56,15 @@ class Game:
 
         # sound handling #
         self.snd_dir = path.join(self.game_dir,'sounds')
-        self.pickup_snd = pg.mixer.Sound(path.join(self.snd_dir,'coin.wav'))
-        self.shoot_snd = pg.mixer.Sound(path.join(self.snd_dir,'shoot.wav'))
-        self.death_snd = pg.mixer.Sound(path.join(self.snd_dir,'explosion.wav'))
-        self.hit_snd = pg.mixer.Sound(path.join(self.snd_dir,'player_hit.wav'))
-        self.hit_snd.set_volume(3)
+        def sound(filepath): return pg.mixer.Sound(path.join(self.snd_dir,filepath))
+
+        self.pickup_snd = sound('coin.wave')
+        self.shoot_snd = sound('shoot.wave')
+        self.death_snd = sound('explosion.wave')
+        self.hit_snd = sound('player_hit.wav')
         self.background_music = path.join(self.snd_dir,'bg_music.wav')
+
+        self.hit_snd.set_volume(1.0)
 
         # attempt to find file, if not build a file
         try:
@@ -116,7 +119,6 @@ class Game:
     #  draw text on the screen somewhere
     def draw_text(self, text, size, color, x, y):
         font_name = pg.font.match_font('arial')
-        # instance of font clas.
         font = pg.font.Font(font_name,size)
         text_surface = font.render(text, True, color)
         text_rect = text_surface.get_rect()
@@ -124,7 +126,6 @@ class Game:
         self.screen.blit(text_surface, text_rect)
 
     def run(self):
-
         # main loop
         while self.running:
             self.dt = self.clock.tick(FPS) / 1000
@@ -134,7 +135,8 @@ class Game:
             self.draw() # output
 
     def blank(self):
-        for i in self.projectiles:
+        # Kill all projectiles, used by blank ability in the future,
+        for i in self.projectiles: # Shouldn't include player projectiles
             i.kill()
 
     # This code handles processing player input.
@@ -151,10 +153,8 @@ class Game:
         
     def events(self):
         for event in pg.event.get():
-
             if event.type == pg.QUIT:
                 self.quit()
-
 
     # Update all sprites.
     def update(self):

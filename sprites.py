@@ -119,6 +119,7 @@ class Particle(Sprite):
         t = min(age / lifetime, 1)
         return start + (end - start) * t
 
+    # Initalize the particle
     def __init__(self, game, x, y,part_type = None,params = None):
         self.part_type = part_type
         self.params = params
@@ -170,6 +171,7 @@ class Particle(Sprite):
         self.pos += (self.vel * self.game.dt)
         self.age += self.game.dt
 
+        # I don't know why "is not false" works but true doesn't.
         if self.size_goal is not False:
             scale = self.tween(self.scale, self.size_goal, self.age, self.LIFETIME)
             self.image = scale_sprite_image(self.original_image, scale)
@@ -208,6 +210,7 @@ class Coin(Sprite):
         self.x = x
         self.y = y
 
+    # Makes the coin fall down, prolly should use a constant.
     def update (self):
         self.y += 50 * self.game.dt
         self.rect.x = self.x
@@ -256,6 +259,7 @@ class Player(Sprite):
         self.cofric = -0.1
         self.current_tile = None
 
+        # Hitbox code 
         self.hit_rect = PLAYER_HIT_RECT.copy()
         self.hit_rect.width = max(1, round(self.hit_rect.width * self.scale))
         self.hit_rect.height = max(1, round(self.hit_rect.height * self.scale))
